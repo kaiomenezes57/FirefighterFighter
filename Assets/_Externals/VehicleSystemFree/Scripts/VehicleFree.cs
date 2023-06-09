@@ -1,5 +1,6 @@
-﻿using System.Collections;
+﻿using FirefighterFighter.Camera;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 
 [System.Serializable]
@@ -8,7 +9,7 @@ public class manual
     public List<KeyCode> gearKeys = new List<KeyCode>();
 }
 
-public class VehicleFree : MonoBehaviour {
+public class VehicleFree : NetworkBehaviour {
 
     public enum ControlType
     {
@@ -87,19 +88,40 @@ public class VehicleFree : MonoBehaviour {
     public int previousGearRpm;
     [SerializeField] public manual m_manual;
 
+    [Header("Camera")]
+    [SerializeField] private GameObject _cameraPrefab;
+
     // Private
     WheelHit whellHit;
     Rigidbody rb;
 
-    private void Start()
+    public override void OnNetworkSpawn()
     {
-        whellHit = new WheelHit(); 
+        if (!IsOwner) { Destroy(this); return; }
+        whellHit = new WheelHit();
 
         rb = GetComponent<Rigidbody>();
         selectWheelHit();
+        
+        CreateAndSetCamera();
+        SetMouseLockState();
     }
 
-    void FixedUpdate()
+    private void CreateAndSetCamera()
+    {
+        GameObject camera = Instantiate(_cameraPrefab);
+        camera.name = "PlayerCinemachineCamera";
+        camera.transform.position = transform.position;
+        camera.GetComponent<CameraAutoSet>().Setup(this);
+    }
+
+    private void SetMouseLockState()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
+
+    private void FixedUpdate()
     {
         // Automatic or manual gear control
         GearControl();
