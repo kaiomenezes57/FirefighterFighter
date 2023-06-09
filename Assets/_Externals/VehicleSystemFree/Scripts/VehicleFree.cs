@@ -97,12 +97,17 @@ public class VehicleFree : NetworkBehaviour {
 
     public override void OnNetworkSpawn()
     {
-        if (!IsOwner) { Destroy(this); return; }
+        base.OnNetworkSpawn();
+        name += $"{Random.Range(0, 10)}";
+        Debug.Log($"{IsClient} && {IsOwner} | {name}");
+
+        if (!IsClient || !IsOwner) { return; }
+
         whellHit = new WheelHit();
 
         rb = GetComponent<Rigidbody>();
         selectWheelHit();
-        
+
         CreateAndSetCamera();
         SetMouseLockState();
     }
@@ -123,6 +128,8 @@ public class VehicleFree : NetworkBehaviour {
 
     private void FixedUpdate()
     {
+        if (!IsClient || !IsOwner) { return; }
+
         // Automatic or manual gear control
         GearControl();
 
