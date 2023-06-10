@@ -113,42 +113,9 @@ namespace FirefighterFighter.Networking
             _visual.GoToMainScreen();
         }
 
-        public async Task<string> CreateRelay()
-        {
-            Allocation allocation = await RelayService.Instance.CreateAllocationAsync(maxConnections: 2);
-            string joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
-            RelayServerData serverData = new(allocation, "dtls");
-
-            NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(serverData);
-            NetworkManager.Singleton.StartHost();
-
-            return joinCode;
-        }
-
-        public async void JoinRelay(string joinCode)
-        {
-            JoinAllocation allocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
-            RelayServerData serverData = new(allocation, "dtls");
-
-            NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(serverData);
-            NetworkManager.Singleton.StartClient();
-
-            _visual.StartGame();
-        }
-
         public async void OnStartGame()
         {
-            string joinCode = await CreateRelay();
-
-            Lobby lobby = await Lobbies.Instance.UpdateLobbyAsync(_clientLobby.Id, new UpdateLobbyOptions
-            {
-                Data = new Dictionary<string, DataObject>
-                {
-                    { "StartGame", new DataObject(DataObject.VisibilityOptions.Public, joinCode) }
-                }
-            });
-
-            _clientLobby = lobby;
+            _clientLobby = await RelayManager.StartGame(_clientLobby);
             _visual.StartGame();
         }
     }
@@ -181,7 +148,7 @@ namespace FirefighterFighter.Networking
             return player;
         }
 
-        private void CheckForUpdates()
+        private async void CheckForUpdates()
         {
             if (_clientLobby == null || _startedGame) { return; }
 
@@ -192,7 +159,8 @@ namespace FirefighterFighter.Networking
             {
                 if (_hostLobby == null)
                 {
-                    JoinRelay(_clientLobby.Data["StartGame"].Value);
+                    await RelayManager.JoinRelay(_clientLobby.Data["StartGame"].Value);
+                    _visual.StartGame();
                 }
 
                 _startedGame = true;

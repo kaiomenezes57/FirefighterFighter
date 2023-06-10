@@ -45,8 +45,8 @@ namespace FirefighterFighter.Networking
 
         private void SetPlayerStats()
         {
-            string player1Name = _lobbyManager.GetClientLobby().Players[0].Data["name"].Value;
-            string player2Name = _lobbyManager.GetClientLobby().Players[1].Data["name"].Value;
+            string player1Name = _lobbyManager.GetClientLobby().Players[0]?.Data["name"].Value;
+            string player2Name = _lobbyManager.GetClientLobby().Players[1]?.Data["name"].Value;
             FindObjectOfType<PlayerStats>().SetPlayersTable_ClientRpc(player1Name, player2Name);
         }
     }
