@@ -105,8 +105,29 @@ public class VehicleFree : NetworkBehaviour {
         rb = GetComponent<Rigidbody>();
         selectWheelHit();
 
+        RandomizeSpawnPoint_ServerRpc();
         CreateAndSetCamera();
         SetMouseLockState();
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void RandomizeSpawnPoint_ServerRpc(ServerRpcParams serverRpcParams = default)
+    {
+        ulong clientID = serverRpcParams.Receive.SenderClientId;
+        PlayerSpawnPoint[] allSpawns = FindObjectsOfType<PlayerSpawnPoint>();
+        Transform spawn = allSpawns[Random.Range(0, allSpawns.Length)].transform;
+
+        RandomizeSpawnPoint_ClientRpc(spawn.position, spawn.rotation, clientID);
+    }
+
+    [ClientRpc]
+    private void RandomizeSpawnPoint_ClientRpc(Vector3 point, Quaternion rotation, ulong clientID)
+    {
+        if (NetworkManager.LocalClientId == clientID)
+        {
+            transform.position = point;
+            transform.rotation = rotation;
+        }
     }
 
     private void CreateAndSetCamera()
