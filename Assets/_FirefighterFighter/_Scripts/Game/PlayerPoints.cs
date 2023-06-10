@@ -1,4 +1,3 @@
-using System;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -27,7 +26,17 @@ namespace FirefighterFighter.Game
         public void AddPoints_ServerRpc(int amount, ServerRpcParams rpcParams = default)
         {
             ulong clientId = rpcParams.Receive.SenderClientId;
-            FindObjectOfType<PlayerStats>().UpdatePlayerPoints_ClientRpc(amount, clientId);
+            
+            for (int i = 0; i < NetworkManager.Singleton.ConnectedClients.Count; i++)
+            {
+                if (NetworkManager.Singleton.ConnectedClients[(ulong)i].ClientId == clientId)
+                {
+                    NetworkManager.Singleton.ConnectedClients[(ulong)i].PlayerObject.
+                        GetComponent<PlayerPoints>().TotalPoints += amount;
+                }
+            }
+
+            FindObjectOfType<PlayerStats>().UpdateVisual_ServerRpc();
         }
     }
 }

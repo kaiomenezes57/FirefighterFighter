@@ -12,8 +12,7 @@ namespace FirefighterFighter.Game
     public class Timer : NetworkBehaviour
     {
         [SerializeField] private TextMeshProUGUI _timerText;
-        private float _timer = 10;
-        public event Action OnTimerOver;
+        private float _timer = 120f;
 
         private void Start()
         {
@@ -66,7 +65,9 @@ namespace FirefighterFighter.Game
         [ClientRpc]
         private void ShowWinner_ClientRpc(string winnerName)
         {
-            _timerText.text = $"{winnerName} WINS!";
+            _timerText.fontStyle = FontStyles.UpperCase;
+            _timerText.text = $"{winnerName} wins!";
+            Time.timeScale = 0f;
         }
     }
 }

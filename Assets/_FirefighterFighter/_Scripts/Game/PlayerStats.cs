@@ -13,27 +13,25 @@ namespace FirefighterFighter.Game
         [SerializeField] private TextMeshProUGUI _player2Points;
 
         [ClientRpc]
-        public void SetPlayersTable_ClientRpc(string player1Name, string player2Name)
+        public void SetPlayersLabel_ClientRpc(string player1Name, string player2Name)
         {
             _player1Name.text = player1Name;
             _player2Name.text = player2Name;
         }
 
-        [ClientRpc]
-        public void UpdatePlayerPoints_ClientRpc(int amount, ulong targetClient)
+        [ServerRpc(RequireOwnership = false)]
+        public void UpdateVisual_ServerRpc()
         {
-            if (NetworkManager.Singleton.LocalClientId == targetClient) { NetworkManager.Singleton.LocalClient.PlayerObject.GetComponent<PlayerPoints>().TotalPoints = amount; }
+            UpdateVisual_ClientRpc(
+                NetworkManager.ConnectedClients[0].PlayerObject.GetComponent<PlayerPoints>().TotalPoints.ToString(),
+                NetworkManager.ConnectedClients[1].PlayerObject.GetComponent<PlayerPoints>().TotalPoints.ToString());
+        }
 
-            string amountText = amount.ToString();
-
-            if (targetClient == 0)
-            {
-                _player1Points.text = amountText;
-            }
-            else
-            {
-                _player2Points.text = amountText;
-            }
+        [ClientRpc]
+        public void UpdateVisual_ClientRpc(string player1Points, string player2Points)
+        {
+            _player1Points.text = $"{player1Points} points";
+            _player2Points.text = $"{player2Points} points";
         }
     }
 }
