@@ -1,49 +1,53 @@
-using FirefighterFighter.Networking;
+using FirefighterFighter.Game;
 using System.Collections;
 using Unity.Netcode;
 using Unity.VisualScripting;
 
-public class InitialServerSetup : NetworkBehaviour
+namespace FirefighterFighter.Networking
 {
-    private LobbyManager _lobbyManager;
-
-    private IEnumerator Start()
+    public class InitialServerSetup : NetworkBehaviour
     {
-        _lobbyManager = FindObjectOfType<LobbyManager>();
+        private LobbyManager _lobbyManager;
 
-        if (IsServer)
+        private IEnumerator Start()
         {
-            while (NetworkManager.Singleton.ConnectedClients.Count != _lobbyManager.GetClientLobby().Players.Count)
-            {
-                yield return null;
-            }
+            _lobbyManager = FindObjectOfType<LobbyManager>();
 
-            for (int i = 0; i < NetworkManager.Singleton.ConnectedClients.Count; i++)
+            if (IsServer)
             {
-                AddUserData(i);
-                SetFloatingName(i);
-            }
+                while (NetworkManager.Singleton.ConnectedClients.Count != _lobbyManager.GetClientLobby().Players.Count)
+                {
+                    yield return null;
+                }
 
-            SetPlayerTable();
+                for (int i = 0; i < NetworkManager.Singleton.ConnectedClients.Count; i++)
+                {
+                    AddUserData(i);
+                    SetFloatingName(i);
+                }
+
+                SetPlayerStats();
+                FindObjectOfType<Game.Timer>().StartTimer();
+            }
         }
-    }
 
-    private void AddUserData(int index)
-    {
-        UserData userData = NetworkManager.Singleton.ConnectedClients[(ulong)index].PlayerObject.AddComponent<UserData>();
-        userData.SetPlayer(_lobbyManager.GetClientLobby().Players[index]);
-    }
+        private void AddUserData(int index)
+        {
+            UserData userData = NetworkManager.Singleton.ConnectedClients[(ulong)index].PlayerObject.AddComponent<UserData>();
+            userData.SetPlayer(_lobbyManager.GetClientLobby().Players[index]);
+        }
 
-    private void SetFloatingName(int index)
-    {
-        NetworkManager.Singleton.ConnectedClients[(ulong)index].PlayerObject.GetComponentInChildren<PlayerName>().
-            SetPlayerNameClientRpc(_lobbyManager.GetClientLobby().Players[index].Data["name"].Value);
-    }
+        private void SetFloatingName(int index)
+        {
+            NetworkManager.Singleton.ConnectedClients[(ulong)index].PlayerObject.GetComponentInChildren<PlayerName>().
+                SetPlayerNameClientRpc(_lobbyManager.GetClientLobby().Players[index].Data["name"].Value);
+        }
 
-    private void SetPlayerTable()
-    {
-        string player1Name = _lobbyManager.GetClientLobby().Players[0].Data["name"].Value;
-        string player2Name = _lobbyManager.GetClientLobby().Players[1].Data["name"].Value;
-        FindObjectOfType<PlayerHud>().SetPlayersTableClientRpc(player1Name, player2Name);
+        private void SetPlayerStats()
+        {
+            string player1Name = _lobbyManager.GetClientLobby().Players[0].Data["name"].Value;
+            string player2Name = _lobbyManager.GetClientLobby().Players[1].Data["name"].Value;
+            FindObjectOfType<PlayerStats>().SetPlayersTable_ClientRpc(player1Name, player2Name);
+        }
     }
 }

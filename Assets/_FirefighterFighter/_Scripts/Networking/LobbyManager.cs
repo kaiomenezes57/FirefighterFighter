@@ -55,6 +55,7 @@ namespace FirefighterFighter.Networking
             
             _visual.ShowPlayersInLobbyScreen(_clientLobby);
             _visual.GoToLobbyRoom(true, _hostLobby.LobbyCode);
+            Debug.Log($"{_hostLobby.LobbyCode}");
         }
 
         public async void JoinLobbyByCode()
