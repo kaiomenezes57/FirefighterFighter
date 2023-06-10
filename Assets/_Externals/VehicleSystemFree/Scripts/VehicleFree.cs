@@ -98,9 +98,6 @@ public class VehicleFree : NetworkBehaviour {
     public override void OnNetworkSpawn()
     {
         base.OnNetworkSpawn();
-        name += $"{Random.Range(0, 10)}";
-        Debug.Log($"{IsClient} && {IsOwner} | {name}");
-
         if (!IsClient || !IsOwner) { return; }
 
         whellHit = new WheelHit();
@@ -117,7 +114,7 @@ public class VehicleFree : NetworkBehaviour {
         GameObject camera = Instantiate(_cameraPrefab);
         camera.name = "PlayerCinemachineCamera";
         camera.transform.position = transform.position;
-        camera.GetComponent<CameraAutoSet>().Setup(this);
+        camera.GetComponent<CameraAutoSet>().Setup(transform);
     }
 
     private void SetMouseLockState()
