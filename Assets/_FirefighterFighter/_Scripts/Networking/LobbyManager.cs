@@ -13,7 +13,7 @@ using UnityEngine;
 
 namespace FirefighterFighter.Networking
 {
-    public class LobbyManager : MonoBehaviour
+    public partial class LobbyManager : MonoBehaviour
     {
         private Lobby _hostLobby;
         private Lobby _clientLobby;
@@ -27,15 +27,7 @@ namespace FirefighterFighter.Networking
             await UnityServices.InitializeAsync();
         }
 
-        private async Task Authenticate()
-        {
-            if (AuthenticationService.Instance.IsSignedIn) { return; }
-
-            AuthenticationService.Instance.ClearSessionToken();
-            await AuthenticationService.Instance.SignInAnonymouslyAsync();
-        }
-
-        public async void CreateLobby()
+        public async void OnCreateLobby()
         {
             await Authenticate();
             CreateLobbyOptions options = new() 
@@ -43,11 +35,11 @@ namespace FirefighterFighter.Networking
                 Player = GetPlayer(),
                 Data = new Dictionary<string, DataObject>
                 {
-                    { "StartGame", new DataObject(DataObject.VisibilityOptions.Member, "0") }
+                    { "StartGame", new DataObject(DataObject.VisibilityOptions.Public, "0") }
                 }
             };
 
-            _hostLobby = await Lobbies.Instance.CreateLobbyAsync(lobbyName: "Room 01", maxPlayers: 4, options);
+            _hostLobby = await Lobbies.Instance.CreateLobbyAsync(lobbyName: "Lobby do Kaio", maxPlayers: 4, options);
             _clientLobby = _hostLobby;
             
             InvokeRepeating(nameof(SendLobbyHeartBeat), 10f, 10f);
@@ -58,16 +50,122 @@ namespace FirefighterFighter.Networking
             Debug.Log($"{_hostLobby.LobbyCode}");
         }
 
-        public async void JoinLobbyByCode()
+        public async void OnJoinLobby(string joinCode)
         {
-            await Authenticate();
-            JoinLobbyByCodeOptions options = new() { Player = GetPlayer() };
+            if (!string.IsNullOrEmpty(joinCode))
+            {
+                await Authenticate();
+                JoinLobbyByCodeOptions options = new() { Player = GetPlayer() };
 
-            _clientLobby = await Lobbies.Instance.JoinLobbyByCodeAsync(_visual.GetLobbyCodeInput(), options);
-            InvokeRepeating(nameof(CheckForUpdates), 3f, 3f);
+                _clientLobby = await Lobbies.Instance.JoinLobbyByCodeAsync(joinCode, options);
+                InvokeRepeating(nameof(CheckForUpdates), 3f, 3f);
 
-            _visual.ShowPlayersInLobbyScreen(_clientLobby);
-            _visual.GoToLobbyRoom(false, _clientLobby.LobbyCode);
+                _visual.ShowPlayersInLobbyScreen(_clientLobby);
+                _visual.GoToLobbyRoom(false, _clientLobby.LobbyCode);
+                return;
+            }
+
+            Debug.LogError($"Invalid join code");
+        }
+
+        [ContextMenu("LobbyList")]
+        public async void OnOpenLobbyList()
+        {
+            QueryLobbiesOptions queryOptions = new()
+            {
+                SampleResults = false,
+                Filters = new List<QueryFilter>
+                {
+                        new QueryFilter(field: QueryFilter.FieldOptions.AvailableSlots, op: QueryFilter.OpOptions.GT, value: "0")
+                },
+                Order = new List<QueryOrder> { new QueryOrder(true, QueryOrder.FieldOptions.Created), }
+            };
+
+            QueryResponse response = await LobbyService.Instance.QueryLobbiesAsync(queryOptions);
+            List<Lobby> lobbies = response.Results;
+            _visual.GoToLobbyList(lobbies);
+        }
+
+        [ContextMenu("QuickLobby")]
+        public async void OnQuickJoin()
+        {
+            try
+            {
+                await Authenticate();
+                QuickJoinLobbyOptions options = new()
+                {
+                    Filter = new List<QueryFilter>() { new QueryFilter(field: QueryFilter.FieldOptions.MaxPlayers, op: QueryFilter.OpOptions.GE, value: "4") }
+                };
+
+                Lobby lobby = await LobbyService.Instance.QuickJoinLobbyAsync(options);
+            }
+            catch (LobbyServiceException e)
+            {
+                Debug.Log(e);
+            }
+        }
+
+        [ContextMenu("LeaveLobby")]
+        public async void OnLeaveLobby()
+        {
+            string clientId = AuthenticationService.Instance.PlayerId;
+            await LobbyService.Instance.RemovePlayerAsync(_clientLobby.Id, clientId);
+            _visual.GoToMainScreen();
+        }
+
+        public async Task<string> CreateRelay()
+        {
+            Allocation allocation = await RelayService.Instance.CreateAllocationAsync(maxConnections: 2);
+            string joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
+            RelayServerData serverData = new(allocation, "dtls");
+
+            NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(serverData);
+            NetworkManager.Singleton.StartHost();
+
+            return joinCode;
+        }
+
+        public async void JoinRelay(string joinCode)
+        {
+            JoinAllocation allocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
+            RelayServerData serverData = new(allocation, "dtls");
+
+            NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(serverData);
+            NetworkManager.Singleton.StartClient();
+
+            _visual.StartGame();
+        }
+
+        public async void OnStartGame()
+        {
+            string joinCode = await CreateRelay();
+
+            Lobby lobby = await Lobbies.Instance.UpdateLobbyAsync(_clientLobby.Id, new UpdateLobbyOptions
+            {
+                Data = new Dictionary<string, DataObject>
+                {
+                    { "StartGame", new DataObject(DataObject.VisibilityOptions.Public, joinCode) }
+                }
+            });
+
+            _clientLobby = lobby;
+            _visual.StartGame();
+        }
+    }
+
+
+    /// <summary>
+    /// LobbyManager partial 2
+    /// Lobby Manager utilities.
+    /// </summary>
+    public partial class LobbyManager
+    {
+        private async Task Authenticate()
+        {
+            if (AuthenticationService.Instance.IsSignedIn) { return; }
+
+            AuthenticationService.Instance.ClearSessionToken();
+            await AuthenticationService.Instance.SignInAnonymouslyAsync();
         }
 
         private Player GetPlayer()
@@ -118,45 +216,6 @@ namespace FirefighterFighter.Networking
         {
             if (_clientLobby == null) { return; }
             _clientLobby = await LobbyService.Instance.GetLobbyAsync(_clientLobby.Id);
-        }
-
-        public async Task<string> CreateRelay()
-        {
-            Allocation allocation = await RelayService.Instance.CreateAllocationAsync(maxConnections: 2);
-            string joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
-            RelayServerData serverData = new(allocation, "dtls");
-
-            NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(serverData);
-            NetworkManager.Singleton.StartHost();
-
-            return joinCode;
-        }
-
-        public async void JoinRelay(string joinCode)
-        {
-            JoinAllocation allocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
-            RelayServerData serverData = new(allocation, "dtls");
-
-            NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(serverData);
-            NetworkManager.Singleton.StartClient();
-
-            _visual.StartGame();
-        }
-
-        public async void StartGame()
-        {
-            string joinCode = await CreateRelay();
-
-            Lobby lobby = await Lobbies.Instance.UpdateLobbyAsync(_clientLobby.Id, new UpdateLobbyOptions
-            {
-                Data = new Dictionary<string, DataObject>
-                {
-                    { "StartGame", new DataObject(DataObject.VisibilityOptions.Member, joinCode) }
-                }
-            });
-
-            _clientLobby = lobby;
-            _visual.StartGame();
         }
     }
 }
