@@ -7,7 +7,7 @@ namespace FirefighterFighter.Camera
 {
     public class CameraAutoSet : MonoBehaviour
     {
-        public void Setup(VehicleFree player)
+        public void Setup(Transform player)
         {
             CinemachineFreeLook camera = GetComponent<CinemachineFreeLook>();
 
