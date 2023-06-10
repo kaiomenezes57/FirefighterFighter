@@ -42,7 +42,7 @@ namespace FirefighterFighter.Networking
             _hostLobby = await Lobbies.Instance.CreateLobbyAsync(lobbyName: "Lobby do Kaio", maxPlayers: 4, options);
             _clientLobby = _hostLobby;
             
-            InvokeRepeating(nameof(SendLobbyHeartBeat), 10f, 10f);
+            InvokeRepeating(nameof(SendLobbyHeartBeat), 5f, 5f);
             await UpdateLobby();
             
             _visual.ShowPlayersInLobbyScreen(_clientLobby);
@@ -117,6 +117,8 @@ namespace FirefighterFighter.Networking
         {
             _clientLobby = await RelayManager.StartGame(_clientLobby);
             _visual.StartGame();
+
+            CancelInvoke();
         }
     }
 

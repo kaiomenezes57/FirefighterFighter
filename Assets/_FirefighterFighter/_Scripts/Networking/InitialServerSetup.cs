@@ -9,6 +9,9 @@ namespace FirefighterFighter.Networking
     {
         private LobbyManager _lobbyManager;
 
+        public bool GameRunning { get { return _gameRunning; } }
+        private bool _gameRunning;
+
         private IEnumerator Start()
         {
             _lobbyManager = FindObjectOfType<LobbyManager>();
@@ -28,6 +31,8 @@ namespace FirefighterFighter.Networking
 
                 SetPlayerStats();
                 FindObjectOfType<Game.Timer>().StartTimer();
+                FindObjectOfType<FireManager>().StartMode();
+                _gameRunning = true;
             }
         }
 
@@ -47,7 +52,8 @@ namespace FirefighterFighter.Networking
         {
             string player1Name = _lobbyManager.GetClientLobby().Players[0]?.Data["name"].Value;
             string player2Name = _lobbyManager.GetClientLobby().Players[1]?.Data["name"].Value;
-            FindObjectOfType<PlayerStats>().SetPlayersTable_ClientRpc(player1Name, player2Name);
+            FindObjectOfType<PlayerStats>().SetPlayersLabel_ClientRpc(player1Name, player2Name);
+            FindObjectOfType<PlayerStats>().UpdateVisual_ServerRpc();
         }
     }
 }
