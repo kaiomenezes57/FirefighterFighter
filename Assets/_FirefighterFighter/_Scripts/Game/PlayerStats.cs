@@ -12,6 +12,12 @@ namespace FirefighterFighter.Game
         [SerializeField] private TextMeshProUGUI _player1Points;
         [SerializeField] private TextMeshProUGUI _player2Points;
 
+        private void Start()
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+
         [ClientRpc]
         public void SetPlayersLabel_ClientRpc(string player1Name, string player2Name)
         {

@@ -1,5 +1,4 @@
 using Unity.Netcode;
-using UnityEngine;
 
 namespace FirefighterFighter.Game
 {
@@ -12,14 +11,6 @@ namespace FirefighterFighter.Game
         {
             if (!IsOwner) { return; }
             base.OnNetworkSpawn();
-        }
-
-        private void Update()
-        {
-            if (Input.GetKeyDown(KeyCode.F))
-            {
-                AddPoints_ServerRpc(UnityEngine.Random.Range(1, 200));
-            }
         }
 
         [ServerRpc(RequireOwnership = false)]
