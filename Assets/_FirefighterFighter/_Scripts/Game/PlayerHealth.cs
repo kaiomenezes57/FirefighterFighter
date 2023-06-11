@@ -1,8 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using Unity.Netcode;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -13,6 +9,7 @@ namespace FirefighterFighter.Game
         [SerializeField] private Slider _healthSlider;
         private int _health = 100;
         public bool IsDied;
+        public bool GameStarted;
 
         private void Start()
         {
@@ -22,10 +19,18 @@ namespace FirefighterFighter.Game
 
         private void OnCollisionEnter(Collision collision)
         {
+            if (!GameStarted) { return; }
+
             if (collision.transform.GetComponentInParent<CityProp>() != null)
             {
                 TakeDamage_ServerRpc(Random.Range(10, 20));
             }
+        }
+
+        [ClientRpc]
+        public void EnableCollisionMode_ClientRpc()
+        {
+            GameStarted = true;
         }
 
         [ServerRpc(RequireOwnership = false)]
