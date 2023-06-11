@@ -27,6 +27,7 @@ namespace FirefighterFighter.Networking
                 {
                     AddUserData(i);
                     SetFloatingName(i);
+                    InitializatePlayerCollisionSystem(i);
                 }
 
                 SetPlayerStats();
@@ -34,6 +35,12 @@ namespace FirefighterFighter.Networking
                 FindObjectOfType<FireManager>().StartMode();
                 _gameRunning = true;
             }
+        }
+
+        private void InitializatePlayerCollisionSystem(int index)
+        {
+            NetworkManager.Singleton.ConnectedClients[(ulong)index].PlayerObject.GetComponentInChildren<PlayerHealth>().
+                EnableCollisionMode_ClientRpc();
         }
 
         private void AddUserData(int index)
