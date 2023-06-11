@@ -6,6 +6,7 @@ using System.Linq;
 using TMPro;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace FirefighterFighter.Game
 {
@@ -13,11 +14,6 @@ namespace FirefighterFighter.Game
     {
         [SerializeField] private TextMeshProUGUI _timerText;
         private float _timer = 120f;
-
-        private void Start()
-        {
-            _timerText.text = null;
-        }
 
         public void StartTimer()
         {
@@ -62,12 +58,36 @@ namespace FirefighterFighter.Game
             ShowWinner_ClientRpc(winnerName);
         }
 
+        [ServerRpc(RequireOwnership = false)]
+        public void ShowWinner_ServerRpc()
+        {
+            NetworkObject winner = NetworkManager.ConnectedClients[0].PlayerObject;
+
+            for (int i = 0; i < NetworkManager.ConnectedClients.Count; i++)
+            {
+                if (!NetworkManager.ConnectedClients[(ulong)i].PlayerObject.GetComponent<PlayerHealth>().IsDied)
+                {
+                    winner = NetworkManager.ConnectedClients[(ulong)i].PlayerObject;
+                }
+            }
+
+            string winnerName = winner.GetComponent<UserData>().Player.Data["name"].Value;
+            ShowWinner_ClientRpc(winnerName);
+        }
+
         [ClientRpc]
-        private void ShowWinner_ClientRpc(string winnerName)
+        public void ShowWinner_ClientRpc(string winnerName)
         {
             _timerText.fontStyle = FontStyles.UpperCase;
             _timerText.text = $"{winnerName} wins!";
             Time.timeScale = 0f;
+
+            StartCoroutine(Routine());
+            IEnumerator Routine()
+            {
+                yield return new WaitForSecondsRealtime(5f);
+                SceneManager.LoadScene(0);
+            }
         }
     }
 }
