@@ -7,8 +7,6 @@ namespace FirefighterFighter.Game
     {
         private void OnTriggerEnter(Collider other)
         {
-            Debug.Log(other.tag);
-
             if (other.CompareTag("Player"))
             {
                 FireExtinguish_ServerRpc();
@@ -22,7 +20,6 @@ namespace FirefighterFighter.Game
             ulong clientID = serverRpcParams.Receive.SenderClientId;
             FireExtinguish_ClientRpc(clientID);
             NetworkObject.Despawn();
-            Destroy(gameObject);
         }
 
         [ClientRpc]
@@ -30,7 +27,7 @@ namespace FirefighterFighter.Game
         {
             if (NetworkManager.LocalClientId == clientID)
             {
-                NetworkManager.LocalClient.PlayerObject.GetComponent<PlayerPoints>().AddPoints_ServerRpc(10);
+                NetworkManager.LocalClient.PlayerObject.GetComponent<PlayerPoints>().AddPoints_ServerRpc(Random.Range(10, 15));
             }
          
             Destroy(gameObject);
